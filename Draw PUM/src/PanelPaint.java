@@ -8,18 +8,20 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 
+import javax.imageio.ImageIO;
 import javax.swing.JPanel;
 import javax.swing.Timer;
 
 public class PanelPaint extends JPanel implements MouseListener{
-
+	
 	Point p0 = null;
 	Point p1 = null;
 	
 	BufferedImage bi = null;
 	
-	MousePos m;
+	PaintCom m;
 	
 	float s = 5;
 	
@@ -34,22 +36,29 @@ public class PanelPaint extends JPanel implements MouseListener{
 		s = val/5f;
 		System.out.println(s);
 	}
+	int aux = 0;
 	
 	Timer paintTimer= new Timer(16,new ActionListener() {
 		
 		@Override
 		public void actionPerformed(ActionEvent arg0) {
 			Point p = m.getMousePosition();
-			p0 = p0==null?p:p1;
-			p1=p;
-			repaint();
+			m.pintar(p, c, s);
 		}
 	});
+	
+	public void pintar(Point p,Color c,float ancho){
+		p0 = p0==null?p:p1;
+		p1=p;
+		this.c = c;
+		this.s = ancho;
+		repaint();
+	}
 	
 	/**
 	 * Create the panel.
 	 */
-	public PanelPaint(MousePos m) {
+	public PanelPaint(PaintCom m) {
 		this.m = m;
 		addMouseListener(this);
 		setFocusable(true);
@@ -108,6 +117,7 @@ public class PanelPaint extends JPanel implements MouseListener{
 		// TODO Auto-generated method stub
 		paintTimer.stop();
 		p0=null;
+		m.pintar(null, null, 0);
 	}
 	
 }

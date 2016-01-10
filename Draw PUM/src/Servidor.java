@@ -1,4 +1,6 @@
+import java.awt.Color;
 import java.awt.EventQueue;
+import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.BufferedReader;
@@ -7,7 +9,6 @@ import java.io.InputStreamReader;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.swing.GroupLayout;
@@ -72,12 +73,23 @@ public class Servidor extends JFrame {
 								juego.addMsg(remitente,msg);
 								System.out.println("Nuevo mensaje: "+aux);
 							}
+							else if(c=='2'){
+								if(msgs.length>3){
+									juego.setP(new Point(Integer.parseInt(msgs[2]),Integer.parseInt(msgs[3])));
+									juego.setC(new Color(Integer.parseInt(msgs[4])));
+									juego.setS(Float.parseFloat(msgs[5]));
+									System.out.println("Nueva imagen");
+								}
+							}
 							for(ObjectOutputStream s2:salidas){
 								s2.reset();
 								s2.writeObject(juego);
 								s2.flush();
 							}
 							System.out.println(salidas.size()+" Clientes actualizados");
+							juego.setP(null);
+							juego.setC(null);
+							juego.setS(0);
 							
 						}
 					} catch (IOException e) {

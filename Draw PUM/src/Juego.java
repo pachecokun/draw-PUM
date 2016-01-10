@@ -1,3 +1,5 @@
+import java.awt.Color;
+import java.awt.Point;
 import java.io.Serializable;
 import java.util.ArrayList;
 
@@ -32,7 +34,9 @@ public class Juego implements Serializable{
 	private String palabra = "";
 	private Jugador jugadorTurno;
 	private Jugador ganador;
-	private byte[] imagen;
+	private Point p;
+	private Color c;
+	private float s;
 	
 	public void turno(){
 		turno++;
@@ -106,12 +110,33 @@ public class Juego implements Serializable{
 		this.ganador = ganador;
 	}
 
-	public byte[] getImagen() {
-		return imagen;
+
+	public Point getP() {
+		return p;
 	}
 
-	public void setImagen(byte[] imagen) {
-		this.imagen = imagen;
+	public void setP(Point p) {
+		this.p = p;
+	}
+
+	public Color getC() {
+		return c;
+	}
+
+	public void setC(Color c) {
+		this.c = c;
+	}
+
+	public float getS() {
+		return s;
+	}
+
+	public void setS(float s) {
+		this.s = s;
+	}
+
+	public void setMsgs(ArrayList<Mensaje> msgs) {
+		this.msgs = msgs;
 	}
 	
 	

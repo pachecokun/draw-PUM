@@ -31,7 +31,7 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.JScrollPane;
 
-public class FrameJuego implements MousePos{
+public class FrameJuego implements PaintCom{
 
 	private JFrame frmDrawPum;
 	private JTextField txt_msg;
@@ -113,6 +113,14 @@ public class FrameJuego implements MousePos{
 		b.setLocation(b.getX()-frmDrawPum.getX()-17, b.getY()-frmDrawPum.getY()-40);
 		return b;
 	}
+	public void pintar(Point p, Color c, float s) {
+		if(p!=null)
+			salida.println("2&"+jugador+"&"+(int)p.getX()+"&"+(int)p.getY()+"&"+c.getRGB()+"&"+s);
+		else
+			salida.println("2&"+jugador+"&"+"0");
+		salida.flush();
+	}
+	
 	
 	
 	public void updateJuego(){
@@ -122,6 +130,13 @@ public class FrameJuego implements MousePos{
 
 		if(juego.getGanador()!=null){
 			JOptionPane.showMessageDialog(null,"Ganador: "+juego.getGanador().getNombre());
+		}
+		
+		if(juego.getP()!=null){
+			panel_paint.pintar(juego.getP(),juego.getC(), juego.getS());
+		}
+		else{
+			panel_paint.p0 = null;
 		}
 		
 	}
@@ -334,4 +349,5 @@ public class FrameJuego implements MousePos{
 		panel_1.setLayout(gl_panel_1);
 		frmDrawPum.getContentPane().setLayout(groupLayout);
 	}
+
 }
