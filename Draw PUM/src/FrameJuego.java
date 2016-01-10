@@ -7,6 +7,11 @@ import java.awt.Point;
 import java.awt.PointerInfo;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
+import java.io.PrintWriter;
+import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -14,22 +19,43 @@ import javax.swing.GroupLayout;
 import javax.swing.GroupLayout.Alignment;
 import javax.swing.JButton;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSlider;
 import javax.swing.JTextField;
 import javax.swing.LayoutStyle.ComponentPlacement;
+import javax.swing.SwingConstants;
 import javax.swing.border.LineBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
-import javax.swing.JLabel;
-import javax.swing.SwingConstants;
+import javax.swing.JScrollPane;
 
 public class FrameJuego implements MousePos{
 
 	private JFrame frmDrawPum;
-	private JTextField textField;
-	ArrayList<Jugador> jugadores= new ArrayList<>();
+	private JTextField txt_msg;
 	Palabras palabras = new Palabras();
+	Socket servidor;
+	PrintWriter salida;
+	ObjectInputStream entrada;
+	volatile Juego juego = new Juego();
+	String jugador = "";
+	
+	Thread threadComunicacion = new Thread(new Runnable() {
+		
+		@Override
+		public void run() {
+			try{
+				while(true){
+					juego = (Juego) entrada.readObject();
+					updateJuego();
+				}
+			}catch(Exception e){
+				e.printStackTrace();
+			}
+		}
+	});
 
 	/**
 	 * Launch the application.
@@ -38,7 +64,7 @@ public class FrameJuego implements MousePos{
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
-					FrameJuego window = new FrameJuego();
+					FrameJuego window = new FrameJuego("127.0.0.1",100,"David");
 					window.frmDrawPum.setVisible(true);
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -50,9 +76,35 @@ public class FrameJuego implements MousePos{
 	/**
 	 * Create the application.
 	 */
-	public FrameJuego() {
-		System.out.println(Arrays.toString(palabras.getOpciones()));
-		initialize();
+	public FrameJuego(String ip,int puerto,String nombre) {
+		try{
+			initialize();
+			
+			servidor = new Socket(ip, puerto); 
+			entrada = new ObjectInputStream(servidor.getInputStream());
+			threadComunicacion.start();
+			
+			Thread.sleep(100);
+			
+			for(Jugador j:juego.getJugadores()){
+				if(nombre.equals(j.getNombre())){
+					JOptionPane.showMessageDialog(null, "Ya hay un jugador con ese nombre");
+					frmDrawPum.dispose();
+					return;
+				}
+			}
+			
+			salida = new PrintWriter(servidor.getOutputStream());
+			
+			salida.println("0"+"&"+nombre+"&"+nombre);
+			salida.flush();
+						
+			jugador = nombre;
+			
+			frmDrawPum.setVisible(true);
+		}catch(Exception e){
+			e.printStackTrace();
+		}
 	}
 	
 	public Point getMousePosition(){
@@ -62,8 +114,21 @@ public class FrameJuego implements MousePos{
 		return b;
 	}
 	
+	
+	public void updateJuego(){
+		lbl_jugadores.setText(juego.getJugadoresString());
+		
+		lbl_msg.setText(juego.getMsgs());
+
+		if(juego.getGanador()!=null){
+			JOptionPane.showMessageDialog(null,"Ganador: "+juego.getGanador().getNombre());
+		}
+		
+	}
 
 	PanelPaint panel_paint;
+	JLabel lbl_jugadores;
+	JLabel lbl_msg;
 	
 	/**
 	 * Initialize the contents of the frame.
@@ -143,20 +208,21 @@ public class FrameJuego implements MousePos{
 							.addContainerGap())))
 		);
 		
-		JLabel lblNewLabel = new JLabel("New label");
+		lbl_jugadores = new JLabel("New label");
+		lbl_jugadores.setVerticalAlignment(SwingConstants.TOP);
 		GroupLayout gl_panel = new GroupLayout(panel);
 		gl_panel.setHorizontalGroup(
 			gl_panel.createParallelGroup(Alignment.LEADING)
 				.addGroup(Alignment.TRAILING, gl_panel.createSequentialGroup()
 					.addContainerGap()
-					.addComponent(lblNewLabel, GroupLayout.DEFAULT_SIZE, 106, Short.MAX_VALUE)
+					.addComponent(lbl_jugadores, GroupLayout.DEFAULT_SIZE, 106, Short.MAX_VALUE)
 					.addContainerGap())
 		);
 		gl_panel.setVerticalGroup(
 			gl_panel.createParallelGroup(Alignment.LEADING)
 				.addGroup(Alignment.TRAILING, gl_panel.createSequentialGroup()
 					.addContainerGap()
-					.addComponent(lblNewLabel, GroupLayout.DEFAULT_SIZE, 46, Short.MAX_VALUE)
+					.addComponent(lbl_jugadores, GroupLayout.DEFAULT_SIZE, 46, Short.MAX_VALUE)
 					.addContainerGap())
 		);
 		panel.setLayout(gl_panel);
@@ -230,30 +296,41 @@ public class FrameJuego implements MousePos{
 		btn_rosa.setBackground(Color.PINK);
 		panel_colores.add(btn_rosa);
 		
-		textField = new JTextField();
-		textField.setColumns(10);
+		txt_msg = new JTextField();
+		txt_msg.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				salida.println("1&"+jugador+"&"+txt_msg.getText());
+				salida.flush();
+				txt_msg.setText("");
+			}
+		});
+		txt_msg.setColumns(10);
 		
-		JLabel label = new JLabel("New label");
-		label.setVerticalAlignment(SwingConstants.TOP);
+		JScrollPane scrollPane = new JScrollPane();
 		GroupLayout gl_panel_1 = new GroupLayout(panel_1);
 		gl_panel_1.setHorizontalGroup(
-			gl_panel_1.createParallelGroup(Alignment.LEADING)
-				.addGroup(Alignment.TRAILING, gl_panel_1.createSequentialGroup()
+			gl_panel_1.createParallelGroup(Alignment.TRAILING)
+				.addGroup(gl_panel_1.createSequentialGroup()
 					.addContainerGap()
 					.addGroup(gl_panel_1.createParallelGroup(Alignment.TRAILING)
-						.addComponent(label, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 106, Short.MAX_VALUE)
-						.addComponent(textField, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 106, Short.MAX_VALUE))
+						.addComponent(scrollPane, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 118, Short.MAX_VALUE)
+						.addComponent(txt_msg, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 118, Short.MAX_VALUE))
 					.addContainerGap())
 		);
 		gl_panel_1.setVerticalGroup(
 			gl_panel_1.createParallelGroup(Alignment.TRAILING)
 				.addGroup(gl_panel_1.createSequentialGroup()
 					.addContainerGap()
-					.addComponent(label, GroupLayout.DEFAULT_SIZE, 213, Short.MAX_VALUE)
-					.addPreferredGap(ComponentPlacement.RELATED)
-					.addComponent(textField, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+					.addComponent(scrollPane, GroupLayout.DEFAULT_SIZE, 186, Short.MAX_VALUE)
+					.addPreferredGap(ComponentPlacement.UNRELATED)
+					.addComponent(txt_msg, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
 					.addContainerGap())
 		);
+		
+		lbl_msg = new JLabel("New label");
+		lbl_msg.setBackground(Color.WHITE);
+		scrollPane.setViewportView(lbl_msg);
+		lbl_msg.setVerticalAlignment(SwingConstants.BOTTOM);
 		panel_1.setLayout(gl_panel_1);
 		frmDrawPum.getContentPane().setLayout(groupLayout);
 	}

@@ -1,13 +1,12 @@
+import java.io.Serializable;
 
-public class Jugador {
+public class Jugador implements Serializable{
+	
 	private String nombre;
 	private int puntos;
-	
-	public Jugador(String nombre, int puntos) {
+	public Jugador(String nombre) {
 		this.nombre = nombre;
-		this.puntos = puntos;
 	}
-	
 	public String getNombre() {
 		return nombre;
 	}
@@ -20,5 +19,6 @@ public class Jugador {
 	public void setPuntos(int puntos) {
 		this.puntos = puntos;
 	}
+	
 	
 }
