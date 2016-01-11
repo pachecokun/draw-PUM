@@ -28,20 +28,39 @@ public class Juego implements Serializable{
 	}
 
 	private ArrayList<Jugador> jugadores = new ArrayList<>();
+	private ArrayList<Jugador> ganadores = new ArrayList<>();
 	private ArrayList<Mensaje> msgs = new ArrayList<>();
 	
-	private int turno = -1;
-	private String palabra = "";
+	private int turno;
+	private String palabra;
 	private Jugador jugadorTurno;
-	private Jugador ganador;
 	private Point p;
 	private Color c;
 	private float s;
+	boolean limpiar;
 	
 	public void turno(){
 		turno++;
-		if(turno<jugadores.size()){
-			jugadorTurno = jugadores.get(turno);
+		if(turno<=jugadores.size()*2){
+			jugadorTurno = jugadores.get((turno-1)%jugadores.size());
+			palabra = null;
+		}
+		else{
+			ArrayList<Jugador> aux = new ArrayList<>();
+			for(Jugador j:jugadores){
+				if(aux.isEmpty()){
+					aux.add(j);
+				}
+				else if(j.getPuntos()>aux.get(0).getPuntos()){
+					aux.clear();
+					aux.add(j);
+				}
+				else if(j.getPuntos()==aux.get(0).getPuntos()){
+					aux.add(j);
+				}
+			}
+			ganadores.clear();
+			ganadores.addAll(aux);
 		}
 	}
 
@@ -49,13 +68,34 @@ public class Juego implements Serializable{
 		return jugadores;
 	}
 	
-	public String getJugadoresString(){
+	public String getJugadoresString(String jugador){
 		String r = "<html>";
 		for(Jugador j:jugadores){
-			r+= j.getPuntos()+" - "+j.getNombre()+"<br/>";
+			if(jugadorTurno==j){
+				r+="<font color = green>";
+			}
+			if(j.getNombre().equals(jugador)){
+				r+="<p><b>"+j.getPuntos()+" - "+j.getNombre()+"</b></p>";
+			}
+			else{
+				r+= "<p>"+j.getPuntos()+" - "+j.getNombre()+"</p>";
+			}
+			if(jugadorTurno==j){
+				r+="</font>";
+			}
 		}
 		r += "</html>";
 		return r;
+	}
+
+	
+	
+	public boolean isLimpiar() {
+		return limpiar;
+	}
+
+	public void setLimpiar(boolean limpiar) {
+		this.limpiar = limpiar;
 	}
 
 	public void setJugadores(ArrayList<Jugador> jugadores) {
@@ -65,15 +105,20 @@ public class Juego implements Serializable{
 	public String getMsgs() {
 		String r = "<html>";
 		for(Mensaje m:msgs){
-			r+= "<br/>"+m.getRemitente()+" : "+m.getMsg();
+			if(m.getRemitente().isEmpty()){
+				r += "<p><font color = green><b>"+m.getMsg()+"</b></font></p>";
+			}
+			else{
+				r+= "<p>"+m.getRemitente()+" : "+m.getMsg()+"</p>";
+			}
 		}
 		r += "</html>";
 		return r;
 	}
 
 	public void addMsg(String remitente,String msg){
-		while(msgs.size()>=50){
-			msgs.remove(484);
+		while(msgs.size()>=11){
+			msgs.remove(0);
 		}
 		msgs.add(new Mensaje(msg, remitente));
 	}
@@ -101,15 +146,10 @@ public class Juego implements Serializable{
 	public void setJugadorTurno(Jugador jugadorTurno) {
 		this.jugadorTurno = jugadorTurno;
 	}
-
-	public Jugador getGanador() {
-		return ganador;
+	
+	public ArrayList<Jugador> getGanadores() {
+		return ganadores;
 	}
-
-	public void setGanador(Jugador ganador) {
-		this.ganador = ganador;
-	}
-
 
 	public Point getP() {
 		return p;

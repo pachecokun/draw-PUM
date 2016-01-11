@@ -1,5 +1,6 @@
 import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Point;
@@ -8,9 +9,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
 
-import javax.imageio.ImageIO;
 import javax.swing.JPanel;
 import javax.swing.Timer;
 
@@ -18,6 +17,9 @@ public class PanelPaint extends JPanel implements MouseListener{
 	
 	Point p0 = null;
 	Point p1 = null;
+	boolean limpiar;
+	boolean enabled = false;
+	String palabra = "";
 	
 	BufferedImage bi = null;
 	
@@ -42,8 +44,10 @@ public class PanelPaint extends JPanel implements MouseListener{
 		
 		@Override
 		public void actionPerformed(ActionEvent arg0) {
-			Point p = m.getMousePosition();
-			m.pintar(p, c, s);
+			if(enabled){
+				Point p = m.getMousePosition();
+				m.pintar(p, c, s);
+			}
 		}
 	});
 	
@@ -76,11 +80,24 @@ public class PanelPaint extends JPanel implements MouseListener{
 		}
 		g = bi.createGraphics();
 
-
-		g.setStroke(new BasicStroke(s));
-		g.setColor(c);
-		if(p0!=null&&p1!=null)
-			g.drawLine((int)p0.getX(),(int) p0.getY(),(int) p1.getX(),(int) p1.getY());
+		
+		if(limpiar){
+			g.setColor(Color.white);
+			g.fillRect(0, 0, getWidth(), getHeight());
+			limpiar = false;
+		}
+		else{
+			g.setStroke(new BasicStroke(s));
+			g.setColor(c);
+			if(p0!=null&&p1!=null)
+				g.drawLine((int)p0.getX(),(int) p0.getY(),(int) p1.getX(),(int) p1.getY());
+		}
+		
+		g.setColor(Color.black);
+		if(!palabra.isEmpty()){
+			g.setFont(new Font("Arial", Font.BOLD, 20));
+			g.drawString("Dibujando "+palabra, 10, 25);
+		}
 		
 		g.dispose();
 		
@@ -119,5 +136,29 @@ public class PanelPaint extends JPanel implements MouseListener{
 		p0=null;
 		m.pintar(null, null, 0);
 	}
+
+	public void limpiar() {
+		limpiar = true;
+		repaint();
+	}
+
+	public boolean isEnabled() {
+		return enabled;
+	}
+
+	public void setEnabled(boolean enabled) {
+		this.enabled = enabled;
+	}
+
+	public String getPalabra() {
+		return palabra;
+	}
+
+	public void setPalabra(String palabra) {
+		this.palabra = palabra;
+		repaint();
+	}
+	
+	
 	
 }

@@ -20,5 +20,8 @@ public class Jugador implements Serializable{
 		this.puntos = puntos;
 	}
 	
-	
+	@Override
+	public String toString() {
+		return nombre;
+	}
 }

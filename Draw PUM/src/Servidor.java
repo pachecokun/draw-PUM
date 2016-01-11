@@ -16,9 +16,13 @@ import javax.swing.GroupLayout.Alignment;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.LayoutStyle.ComponentPlacement;
+import javax.swing.Timer;
+import javax.swing.UIManager;
+import javax.swing.UIManager.LookAndFeelInfo;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
 
@@ -30,6 +34,27 @@ public class Servidor extends JFrame {
 	CopyOnWriteArrayList<ObjectOutputStream> salidas = new CopyOnWriteArrayList<>();
 	CopyOnWriteArrayList<BufferedReader> entradas = new CopyOnWriteArrayList<>();
 	volatile Juego juego = new Juego();
+	int tiempo = 60;
+	
+	Timer tiempoTurno = new Timer(1000, new ActionListener() {
+		
+		@Override
+		public void actionPerformed(ActionEvent e) {
+			if(tiempo==60||tiempo==30||tiempo==10||tiempo<6){
+				juego.addMsg("", "Quedan "+tiempo+" segundos");
+				updateClientes();
+			}
+			if(tiempo==0){
+				juego.turno();
+				juego.setLimpiar(true);
+				juego.addMsg("", juego.getJugadorTurno().getNombre()+" seleccionando palabra");
+				updateClientes();
+				tiempoTurno.stop();
+			}
+			System.out.println("Tiempo restante: "+tiempo);
+			tiempo--;
+		}
+	});
 	
 	Thread threadServer = new Thread(new Runnable() {
 		@Override
@@ -70,7 +95,26 @@ public class Servidor extends JFrame {
 								System.out.println("Nuevo jugador: "+msg);
 							}
 							else if(c=='1'){
-								juego.addMsg(remitente,msg);
+								
+								if(juego.getTurno()>0&&juego.getPalabra()!=null&&cadena(msg).equals(cadena(juego.getPalabra()))){
+								
+									for(Jugador j:juego.getJugadores()){
+										if(remitente.equals(j.getNombre())){
+											if(j!=juego.getJugadorTurno()){
+												j.setPuntos(j.getPuntos()+1);
+												juego.addMsg("", j.getNombre()+" adivinó la palabra");
+												tiempoTurno.stop();
+												juego.turno();
+												juego.setLimpiar(true);
+												juego.addMsg("", juego.getJugadorTurno().getNombre()+" seleccionando palabra");
+											}
+											break;
+										}
+									}
+								}
+								else if(juego.getPalabra()==null||!cadena(msg).contains(cadena(juego.getPalabra()))){
+									juego.addMsg(remitente,msg);
+								}
 								System.out.println("Nuevo mensaje: "+aux);
 							}
 							else if(c=='2'){
@@ -78,18 +122,29 @@ public class Servidor extends JFrame {
 									juego.setP(new Point(Integer.parseInt(msgs[2]),Integer.parseInt(msgs[3])));
 									juego.setC(new Color(Integer.parseInt(msgs[4])));
 									juego.setS(Float.parseFloat(msgs[5]));
-									System.out.println("Nueva imagen");
 								}
 							}
-							for(ObjectOutputStream s2:salidas){
-								s2.reset();
-								s2.writeObject(juego);
-								s2.flush();
+							else if(c=='3'){
+								juego.setLimpiar(true);
 							}
-							System.out.println(salidas.size()+" Clientes actualizados");
+							else if(c=='4'){
+								juego.turno();
+								juego.addMsg("", juego.getJugadorTurno().getNombre()+" seleccionando palabra");
+								System.out.println("Juego iniciado, turno de "+juego.getJugadorTurno().getNombre());
+							}
+							else if(c=='5'){
+								juego.setPalabra(msg);
+								juego.addMsg("", "La palabra ha sido seleccionada");
+								tiempo = 60;
+								tiempoTurno.start();
+							}
+							
+							updateClientes();
+							
 							juego.setP(null);
 							juego.setC(null);
 							juego.setS(0);
+							juego.setLimpiar(false);
 							
 						}
 					} catch (IOException e) {
@@ -101,6 +156,23 @@ public class Servidor extends JFrame {
 		}
 	});
 	
+	public void updateClientes(){
+
+		for(ObjectOutputStream s2:salidas){
+			try{
+				s2.reset();
+				s2.writeObject(juego);
+				s2.flush();
+			}catch(Exception e){
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	String cadena(String s){
+		return s.trim().toLowerCase().replace("á","a").replace("é","e").replace("í","i").replace("ó","o").replace("ú","u");
+	}
+	
 	private JPanel contentPane;
 	private JTextField txt_puerto;
 	private JTextField txt_ip;
@@ -111,6 +183,17 @@ public class Servidor extends JFrame {
 	 * Launch the application.
 	 */
 	public static void main(String[] args) {
+
+		try {
+		    for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+		        if ("Nimbus".equals(info.getName())) {
+		            UIManager.setLookAndFeel(info.getClassName());
+		            break;
+		        }
+		    }
+		} catch (Exception e) {
+		    // If Nimbus is not available, you can set the GUI to another look and feel.
+		}
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
@@ -129,7 +212,8 @@ public class Servidor extends JFrame {
 	public Servidor() {
 		setResizable(false);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setBounds(100, 100, 242, 282);
+		setBounds(100, 100, 291, 346);
+		setLocationRelativeTo(null);
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		setContentPane(contentPane);
@@ -158,7 +242,11 @@ public class Servidor extends JFrame {
 		JButton btn_cliente = new JButton("Conectar");
 		btn_cliente.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				new FrameJuego(txt_ip.getText(), Integer.parseInt(txt_puerto_1.getText()), txt_nombre.getText());
+				try{
+					new FrameJuego(txt_ip.getText(), Integer.parseInt(txt_puerto_1.getText()), txt_nombre.getText());
+				}catch(Exception ex){
+					JOptionPane.showMessageDialog(null, "Error al iniciar conexión, verifique que los parámetros sean correctos");
+				}
 			}
 		});
 		GroupLayout gl_panel = new GroupLayout(panel);
@@ -166,38 +254,38 @@ public class Servidor extends JFrame {
 			gl_panel.createParallelGroup(Alignment.TRAILING)
 				.addGroup(gl_panel.createSequentialGroup()
 					.addContainerGap()
-					.addGroup(gl_panel.createParallelGroup(Alignment.TRAILING)
-						.addComponent(btn_cliente)
-						.addGroup(Alignment.LEADING, gl_panel.createSequentialGroup()
+					.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
+						.addGroup(gl_panel.createSequentialGroup()
 							.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
-								.addComponent(label_1, GroupLayout.PREFERRED_SIZE, 36, GroupLayout.PREFERRED_SIZE)
-								.addComponent(lblNombre)
-								.addComponent(lblIp, GroupLayout.PREFERRED_SIZE, 36, GroupLayout.PREFERRED_SIZE))
-							.addGap(14)
+								.addComponent(label_1, GroupLayout.DEFAULT_SIZE, 79, Short.MAX_VALUE)
+								.addComponent(lblIp, GroupLayout.DEFAULT_SIZE, 77, Short.MAX_VALUE)
+								.addComponent(lblNombre, GroupLayout.DEFAULT_SIZE, 77, Short.MAX_VALUE))
+							.addPreferredGap(ComponentPlacement.RELATED)
 							.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
-								.addComponent(txt_ip, GroupLayout.DEFAULT_SIZE, 113, Short.MAX_VALUE)
-								.addComponent(txt_puerto_1, Alignment.TRAILING, GroupLayout.DEFAULT_SIZE, 113, Short.MAX_VALUE)
-								.addComponent(txt_nombre, 113, 113, Short.MAX_VALUE))))
+								.addComponent(txt_nombre, 113, 142, Short.MAX_VALUE)
+								.addComponent(txt_ip, Alignment.TRAILING, GroupLayout.DEFAULT_SIZE, 142, Short.MAX_VALUE)
+								.addComponent(txt_puerto_1, Alignment.TRAILING, GroupLayout.PREFERRED_SIZE, 142, GroupLayout.PREFERRED_SIZE)))
+						.addComponent(btn_cliente, Alignment.TRAILING))
 					.addContainerGap())
 		);
 		gl_panel.setVerticalGroup(
 			gl_panel.createParallelGroup(Alignment.LEADING)
 				.addGroup(gl_panel.createSequentialGroup()
-					.addGap(3)
+					.addContainerGap()
 					.addGroup(gl_panel.createParallelGroup(Alignment.BASELINE)
-						.addComponent(lblIp)
-						.addComponent(txt_ip, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-					.addGap(9)
-					.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
-						.addComponent(label_1)
-						.addComponent(txt_puerto_1, GroupLayout.PREFERRED_SIZE, 20, GroupLayout.PREFERRED_SIZE))
+						.addComponent(txt_ip, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+						.addComponent(lblIp))
 					.addPreferredGap(ComponentPlacement.RELATED)
+					.addGroup(gl_panel.createParallelGroup(Alignment.BASELINE)
+						.addComponent(txt_puerto_1, GroupLayout.PREFERRED_SIZE, 24, GroupLayout.PREFERRED_SIZE)
+						.addComponent(label_1, GroupLayout.PREFERRED_SIZE, 15, GroupLayout.PREFERRED_SIZE))
+					.addGap(9)
 					.addGroup(gl_panel.createParallelGroup(Alignment.BASELINE)
 						.addComponent(lblNombre)
 						.addComponent(txt_nombre, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-					.addPreferredGap(ComponentPlacement.RELATED)
+					.addPreferredGap(ComponentPlacement.RELATED, 32, Short.MAX_VALUE)
 					.addComponent(btn_cliente)
-					.addContainerGap(17, Short.MAX_VALUE))
+					.addContainerGap())
 		);
 		panel.setLayout(gl_panel);
 		
@@ -209,22 +297,27 @@ public class Servidor extends JFrame {
 		JButton btn_servidor = new JButton("Iniciar Servidor");
 		btn_servidor.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				iniciarServidor(Integer.parseInt(txt_puerto.getText()));
-				btn_servidor.setEnabled(false);
-				System.out.println("Servidor iniciado");
+				try{
+					iniciarServidor(Integer.parseInt(txt_puerto.getText()));
+					btn_servidor.setEnabled(false);
+					txt_puerto.setEnabled(false);
+					System.out.println("Servidor iniciado");
+				}catch(Exception e){
+					JOptionPane.showMessageDialog(null, "No se pudo iniciar servidor, verifique qeu el puerto no está ocupado.");
+				}
 			}
 		});
 		GroupLayout gl_panel_1 = new GroupLayout(panel_1);
 		gl_panel_1.setHorizontalGroup(
-			gl_panel_1.createParallelGroup(Alignment.LEADING)
-				.addGroup(Alignment.TRAILING, gl_panel_1.createSequentialGroup()
+			gl_panel_1.createParallelGroup(Alignment.TRAILING)
+				.addGroup(gl_panel_1.createSequentialGroup()
 					.addContainerGap()
 					.addGroup(gl_panel_1.createParallelGroup(Alignment.TRAILING)
 						.addComponent(btn_servidor)
-						.addGroup(gl_panel_1.createSequentialGroup()
+						.addGroup(Alignment.LEADING, gl_panel_1.createSequentialGroup()
 							.addComponent(lblPuerto)
-							.addPreferredGap(ComponentPlacement.UNRELATED)
-							.addComponent(txt_puerto, GroupLayout.DEFAULT_SIZE, 336, Short.MAX_VALUE)))
+							.addPreferredGap(ComponentPlacement.RELATED, 46, Short.MAX_VALUE)
+							.addComponent(txt_puerto, GroupLayout.PREFERRED_SIZE, 141, GroupLayout.PREFERRED_SIZE)))
 					.addContainerGap())
 		);
 		gl_panel_1.setVerticalGroup(
@@ -242,34 +335,28 @@ public class Servidor extends JFrame {
 		GroupLayout gl_contentPane = new GroupLayout(contentPane);
 		gl_contentPane.setHorizontalGroup(
 			gl_contentPane.createParallelGroup(Alignment.LEADING)
-				.addGroup(gl_contentPane.createSequentialGroup()
+				.addGroup(Alignment.TRAILING, gl_contentPane.createSequentialGroup()
 					.addGap(10)
-					.addGroup(gl_contentPane.createParallelGroup(Alignment.TRAILING, false)
-						.addComponent(panel_1, Alignment.LEADING, 0, 0, Short.MAX_VALUE)
-						.addComponent(panel, Alignment.LEADING, GroupLayout.PREFERRED_SIZE, 200, Short.MAX_VALUE))
-					.addContainerGap(246, Short.MAX_VALUE))
+					.addGroup(gl_contentPane.createParallelGroup(Alignment.TRAILING)
+						.addComponent(panel, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 255, Short.MAX_VALUE)
+						.addComponent(panel_1, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 255, Short.MAX_VALUE))
+					.addContainerGap())
 		);
 		gl_contentPane.setVerticalGroup(
 			gl_contentPane.createParallelGroup(Alignment.LEADING)
 				.addGroup(gl_contentPane.createSequentialGroup()
-					.addComponent(panel_1, GroupLayout.PREFERRED_SIZE, 86, GroupLayout.PREFERRED_SIZE)
+					.addComponent(panel_1, GroupLayout.PREFERRED_SIZE, 119, GroupLayout.PREFERRED_SIZE)
 					.addPreferredGap(ComponentPlacement.RELATED)
-					.addComponent(panel, GroupLayout.DEFAULT_SIZE, 147, Short.MAX_VALUE)
+					.addComponent(panel, GroupLayout.DEFAULT_SIZE, 171, Short.MAX_VALUE)
 					.addContainerGap())
 		);
 		contentPane.setLayout(gl_contentPane);
 	}
 	
-	public void iniciarServidor(int puerto){
-		try {
-			
-			ss = new ServerSocket(puerto);
-			threadServer.start();
-			threadClientes.start();
-			
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+	public void iniciarServidor(int puerto)throws Exception{
+		ss = new ServerSocket(puerto);
+		threadServer.start();
+		threadClientes.start();
 	}
 	
 	public void detenerServidor(){
