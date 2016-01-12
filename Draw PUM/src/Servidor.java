@@ -35,6 +35,7 @@ public class Servidor extends JFrame {
 	CopyOnWriteArrayList<BufferedReader> entradas = new CopyOnWriteArrayList<>();
 	volatile Juego juego = new Juego();
 	int tiempo = 60;
+	Boolean enviando = false;
 	
 	Timer tiempoTurno = new Timer(1000, new ActionListener() {
 		
@@ -51,7 +52,6 @@ public class Servidor extends JFrame {
 				updateClientes();
 				tiempoTurno.stop();
 			}
-			System.out.println("Tiempo restante: "+tiempo);
 			tiempo--;
 		}
 	});
@@ -157,7 +157,8 @@ public class Servidor extends JFrame {
 	});
 	
 	public void updateClientes(){
-
+		while(enviando);
+		enviando = true;
 		for(ObjectOutputStream s2:salidas){
 			try{
 				s2.reset();
@@ -167,6 +168,7 @@ public class Servidor extends JFrame {
 				e.printStackTrace();
 			}
 		}
+		enviando = false;
 	}
 	
 	String cadena(String s){

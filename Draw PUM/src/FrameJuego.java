@@ -106,7 +106,7 @@ public class FrameJuego implements PaintCom,FrameOpciones.PalabraLister{
 	public Point getMousePosition(){
 		PointerInfo a = MouseInfo.getPointerInfo();
 		Point b = a.getLocation();
-		b.setLocation(b.getX()-frmDrawPum.getX()-17, b.getY()-frmDrawPum.getY()-40);
+		b.setLocation(b.getX()-frmDrawPum.getX()-8, b.getY()-frmDrawPum.getY()-42);
 		return b;
 	}
 	public void pintar(Point p, Color c, float s) {

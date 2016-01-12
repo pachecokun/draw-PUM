@@ -4,9 +4,7 @@ Alberca
 Alegría
 Altruismo
 Amistad
-Amor
 Anillo
-Animales
 Árbol
 Arco
 Átomo
@@ -31,7 +29,6 @@ Cerdo
 Cerveza
 Cinco
 Cinturón
-Codicia
 Computadora
 Cooperación
 Cuaderno
@@ -52,8 +49,6 @@ Guitarra
 Hoja
 Honestidad
 Honorabilidad
-Honradez
-Humildad
 Idea
 Iglesia
 Individualismo
